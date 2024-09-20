@@ -1,0 +1,110 @@
+#include <Arduino.h>
+
+#define LED1 13    
+#define LED2 12    
+#define LED3 14    
+#define ADC_PIN 34 
+#define ADC_MAX 4095  // Máximo valor del ADC (12 bits)
+#define VREF 3.3      // Voltaje de referencia del ESP32
+
+// Función para leer el ADC y mostrar el voltaje
+void leerADC() {
+  int valorADC = analogRead(ADC_PIN);  // Leer el valor crudo del ADC
+  float voltaje = (valorADC * VREF) / ADC_MAX;  // Convertir a voltaje
+  Serial.print("Voltaje: ");
+  Serial.print(voltaje, 2);  // Imprimir el voltaje con 2 decimales
+  Serial.println(" V");
+}
+
+// Función para encender el LED durante cierto tiempo
+void encenderLED(int led, int tiempo_ms) {
+  switch (led) {
+    case 1:
+      digitalWrite(LED1, HIGH);
+      break;
+    case 2:
+      digitalWrite(LED2, HIGH);
+      break;
+    case 3:
+      digitalWrite(LED3, HIGH);
+      break;
+  }
+vTaskDelay(tiempo_ms / portTICK_PERIOD_MS);
+
+  switch (led) {
+    case 1:
+      digitalWrite(LED1, LOW);
+      break;
+    case 2:
+      digitalWrite(LED2, LOW);
+      break;
+    case 3:
+      digitalWrite(LED3, LOW);
+      break;
+  }
+}
+
+// Función para controlar LEDs usando Serial.parseInt() y Serial.available()
+void controlarLEDs() {
+  Serial.println("Ingresa el LED y el tiempo en ms (formato: LED,tiempo): ");
+  
+  while (true) {
+    if (Serial.available()) {
+      int led = Serial.parseInt();  // Leer el primer número (LED)
+      int tiempo = Serial.parseInt();  // Leer el segundo número (tiempo)
+      
+      delay(5000);
+
+// Verificar si el LED es válido y el tiempo es mayor que cero
+      if ((led >= 1 && led <= 3) && (tiempo > 0)) {
+        encenderLED(led, tiempo);  // Encender el LED por el tiempo indicado
+        Serial.println("Listo!");
+        break;  // Salir del bucle y mostrar el menú nuevamente
+      } else {
+        Serial.println("Vuelve a intentarlo");
+        // Limpiar el buffer serial en caso de error
+        while (Serial.available()) Serial.read();2
+      }
+    }
+  }
+}
+
+// Función para desplegar el menú
+void mostrarMenu() {
+  Serial.println("\n--- Menú ---");
+  Serial.println("1. Lectura ADC del Voltaje del Potenciómetro");
+  Serial.println("2. Controlar LEDs para encenderlas");
+  Serial.print("Selecciona una opción: ");
+}
+
+void setup() {
+  // Inicializar la comunicación serial
+  Serial.begin(9600);
+// Configurar pines como salida
+  pinMode(LED1, OUTPUT);
+  pinMode(LED2, OUTPUT);
+  pinMode(LED3, OUTPUT);
+
+  // Configurar el pin ADC como entrada
+  pinMode(ADC_PIN, INPUT);
+  
+  mostrarMenu();
+}
+
+void loop() {
+  if (Serial.available() > 0) {
+    char opcion = Serial.read();  // Leer la opción ingresada
+    switch (opcion) {
+      case '1':
+        leerADC();
+        break;
+      case '2':
+        controlarLEDs();
+        break;
+      default:
+        Serial.println("Opción inválida.");
+        break;
+    }
+    mostrarMenu();  // Volver a desplegar el menú después de cada operación
+  }
+}
